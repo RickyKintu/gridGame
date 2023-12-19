@@ -396,7 +396,6 @@ useEffect(() => {
       if (bombPositions.includes(index)) {
         playBomb();
         if(firstClick){
-            playFCBomb()
             setShowImage(true);
         }
         playGameOver();
