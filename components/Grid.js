@@ -173,9 +173,28 @@ const [showImage, setShowImage] = useState(false);
         console.log(error);
       }
     };
+
+    
   
     loadHighScore();
   }, [startGame]);
+
+  useEffect(() => {
+    const loadConsecutiveChests = async () => {
+      try {
+        const value = await AsyncStorage.getItem('CONSECUTIVE_CHESTS');
+        if (value !== null) {
+          setConsecutiveChests(parseInt(value, 10));
+        }
+      } catch (error) {
+        // Error retrieving data
+        console.error(error);
+      }
+    };
+  
+    loadConsecutiveChests();
+  }, []);
+  
 
 
   
@@ -432,6 +451,17 @@ const handleStartButtonClick = () => {
           // User has opened 10 in a row
           // Implement your logic here for 10 in a row
         }
+
+
+  // Save the updated consecutive chest count to AsyncStorage
+  AsyncStorage.setItem('CONSECUTIVE_CHESTS', (consecutiveChests + 1).toString())
+    .then(() => {
+      console.log('Consecutive chests count saved successfully.');
+    })
+    .catch((error) => {
+      console.error('Error saving consecutive chests count: ', error);
+    });
+
       } else {
         setFirstClick(false)
         console.log(
