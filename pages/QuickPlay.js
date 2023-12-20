@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet, ImageBackground } from "react-native";
 import Grid from "../components/Grid";
 import backgroundImage from "../assets/img/background4.gif"; // Replace with the path to your background image
-
+import MuteButton from '../components/MuteButton'; // Update the path as needed
 
 
 const GamePage = () => {
@@ -10,6 +10,7 @@ const GamePage = () => {
     <ImageBackground source={backgroundImage} style={styles.background}>
     <View style={styles.container}>
       <Grid/>
+      <MuteButton />
     </View>
     </ImageBackground>
   );

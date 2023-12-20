@@ -43,6 +43,8 @@ const [firstClick, setFirstClick] = useState(true);
 
 const [showImage, setShowImage] = useState(false);
   const slideAnim = useRef(new Animated.Value(300)).current; // Assuming 300 is off-screen to the right
+  const [gameOutcome, setGameOutcome] = useState(null);
+
 
 
 
@@ -330,35 +332,38 @@ useEffect(() => {
 }, [questionMarkItems]);
 
 
-  const handleStartButtonClick = () => {
-    setFirstClick(true)
-    setMoves(0);
-    setGameOver(false);
-    setQuestionMarkItems(new Set());
-    const newBombPositions = [];
-    let newChestPosition;
+const handleStartButtonClick = () => {
+  setFirstClick(true);
+  setMoves(0);
+  setQuestionMarkItems(new Set());
+  setGameOutcome('new')
+  const newBombPositions = [];
+  let newChestPosition;
 
-    const randomBombNumber = Math.floor(Math.random() * 5) + 2;
+  const randomBombNumber = Math.floor(Math.random() * 5) + 2;
 
-  
-    // Generate bomb positions
-    while (newBombPositions.length < randomBombNumber) {
-      const randomPosition = Math.floor(Math.random() * (gridSize * gridSize)) + 1;
-      if (!newBombPositions.includes(randomPosition) && randomPosition !== newChestPosition) {
-        newBombPositions.push(randomPosition);
-      }
+  // Generate bomb positions
+  while (newBombPositions.length < randomBombNumber) {
+    const randomPosition = Math.floor(Math.random() * (gridSize * gridSize)) + 1;
+    if (!newBombPositions.includes(randomPosition) && randomPosition !== newChestPosition) {
+      newBombPositions.push(randomPosition);
     }
-  
-    // Generate chest position
-    do {
-      newChestPosition = Math.floor(Math.random() * (gridSize * gridSize)) + 1;
-    } while (newBombPositions.includes(newChestPosition));
-  
-    setBombPositions(newBombPositions);
-    setChestPosition(newChestPosition);
-    setShowValues(false);
-    setClickedItems([]);
-  };
+  }
+
+  // Generate chest position
+  do {
+    newChestPosition = Math.floor(Math.random() * (gridSize * gridSize)) + 1;
+  } while (newBombPositions.includes(newChestPosition));
+
+  setBombPositions(newBombPositions);
+  setChestPosition(newChestPosition);
+  setShowValues(false);
+  setClickedItems([]);
+  setGameOver(false);
+
+
+};
+
   
   
 
@@ -386,6 +391,7 @@ useEffect(() => {
         Alert.alert("Game Over", "You have reached the maximum number of moves.");
         // Reset consecutive chest count when the game is over
         setConsecutiveChests(0);
+        setGameOutcome("lose")
         return;
       }
   
@@ -403,9 +409,11 @@ useEffect(() => {
         setShowValues(true);
         // Reset consecutive chest count when a bomb is clicked
         setConsecutiveChests(0);
+        setGameOutcome("lose")
       } else if (index === chestPosition) {
         setGameOver(true);
         playChest();
+        setGameOutcome("win")
         Alert.alert("Congratulations!", "You found the chest!");
         setShowValues(true);
         // Increase consecutive chest count when the chest is found
@@ -430,8 +438,7 @@ useEffect(() => {
           "Not yet!",
           `Steps to the chest: ${calculateStepsToChest(index)}`
         );
-        // Reset consecutive chest count when a non-chest item is clicked
-        setConsecutiveChests(0);
+    
       }
     }
   };
@@ -457,11 +464,14 @@ useEffect(() => {
         <Text style={styles.highScoreLabel}>High Score</Text>
       </View>
       <TouchableOpacity
-        style={styles.startButton}
-        onPress={handleStartButtonClick}
-      >
-        <Text style={styles.startButtonText}>Start</Text>
-      </TouchableOpacity>
+  style={styles.startButton}
+  onPress={handleStartButtonClick}
+>
+  <Text style={styles.startButtonText}>
+    {gameOutcome === "win" ? "Continue" : gameOutcome === "lose" ? "Play again" : gameOutcome === "new" ? "New game" : "Start" }
+  </Text>
+</TouchableOpacity>
+
       <TouchableOpacity
         style={styles.toggleValuesButton}
         onPress={() => setShowValues(!showValues)}
