@@ -1,25 +1,31 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet,ImageBackground } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ImageBackground,
+  Animated,
+} from "react-native";
 import backgroundImage from "../assets/img/background.png"; // Replace with the path to your background image
-
 
 const GamePage = ({ navigation }) => {
   return (
     <ImageBackground source={backgroundImage} style={styles.background}>
-    <View style={styles.container}>
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => navigation.navigate("QuickPlay")}
-      >
-        <Text style={styles.buttonText}>Quick Play</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => navigation.navigate("TimeMode")}
-      >
-        <Text style={styles.buttonText}>Time Mode</Text>
-      </TouchableOpacity>
-    </View>
+      <View style={styles.container}>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => navigation.navigate("QuickPlay")}
+        >
+          <Text style={styles.buttonText}>Quick Play</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => navigation.navigate("TimeMode")}
+        >
+          <Text style={styles.buttonText}>Time Mode</Text>
+        </TouchableOpacity>
+      </View>
     </ImageBackground>
   );
 };

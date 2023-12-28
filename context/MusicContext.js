@@ -1,32 +1,47 @@
-import React, { createContext, useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { createContext, useState, useEffect } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const MusicContext = createContext();
 
 export const MusicProvider = ({ children }) => {
   const [isMuted, setIsMuted] = useState(false);
+  const [currentSongIndex, setCurrentSongIndex] = useState(0); // Current song index
 
-  // Load the mute state from AsyncStorage when the app starts
+  const songs = [
+    require("../assets/sound/bg_medival.mp3"),
+    require("../assets/sound/bg_scheming.mp3"),
+    require("../assets/sound/bg_sneaky.mp3"),
+    require("../assets/sound/bg_treasure.mp3"),
+    // ... other songs
+  ];
+
   useEffect(() => {
     const loadMuteState = async () => {
-      const muteState = await AsyncStorage.getItem('MUTE_STATE');
-      console.log(muteState)
+      const muteState = await AsyncStorage.getItem("MUTE_STATE");
       if (muteState !== null) {
-        setIsMuted(muteState === 'true');
+        setIsMuted(muteState === "true");
       }
     };
 
     loadMuteState();
   }, []);
 
-  // Save the mute state to AsyncStorage whenever it changes
   useEffect(() => {
-    AsyncStorage.setItem('MUTE_STATE', isMuted.toString());
-    console.log("set sync to: " + isMuted)
+    AsyncStorage.setItem("MUTE_STATE", isMuted.toString());
   }, [isMuted]);
 
+  const playNextSong = () => {
+    setCurrentSongIndex((prevIndex) => {
+      // Calculate the next index. If at the end of the array, loop back to 0.
+      const nextIndex = (prevIndex + 1) % songs.length;
+      return nextIndex;
+    });
+  };
+
   return (
-    <MusicContext.Provider value={{ isMuted, setIsMuted }}>
+    <MusicContext.Provider
+      value={{ isMuted, setIsMuted, playNextSong, currentSongIndex, songs }}
+    >
       {children}
     </MusicContext.Provider>
   );

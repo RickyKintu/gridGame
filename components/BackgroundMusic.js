@@ -1,77 +1,55 @@
-import React, { useEffect, useContext, useState, useRef } from 'react';
-import { Audio } from 'expo-av';
-import { MusicContext } from '../context/MusicContext';
-
-const songs = [
-  require('../assets/sound/bg_medival.mp3'),
-  require('../assets/sound/bg_scheming.mp3'),
-  require('../assets/sound/bg_sneaky.mp3'),
-  require('../assets/sound/bg_treasure.mp3'),
-  // Add more songs here
-];
-
-let currentSongIndex = 0;
+import React, { useEffect, useContext, useRef, useState } from "react";
+import { Audio } from "expo-av";
+import { MusicContext } from "../context/MusicContext";
 
 const BackgroundMusic = () => {
-  const { isMuted } = useContext(MusicContext);
-  const [isLoading, setIsLoading] = useState(true); // Start with loading state true
-  const sound = useRef(new Audio.Sound()).current;
+  const { isMuted, currentSongIndex, playNextSong, songs } =
+    useContext(MusicContext);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // New state to track loading status
+  const sound = useRef(null);
 
-  const loadAndPlay = async () => {
-    try {
-      await sound.loadAsync(songs[currentSongIndex]);
-      await sound.playAsync();
-    } catch (error) {
-      console.error("Error loading or playing song", error);
-    }
-  };
-
-  const playNextSong = async () => {
-    if (currentSongIndex >= songs.length) {
-      currentSongIndex = 0; // Reset to the first song
-    }
-
-    try {
-      await sound.stopAsync(); // Stop the sound before loading the next one
-      await loadAndPlay();
-
-      sound.setOnPlaybackStatusUpdate(async (status) => {
-        if (status.didJustFinish) {
-          currentSongIndex++;
-          playNextSong();
-        }
-      });
-    } catch (error) {
-      console.error("Error loading or playing song", error);
-    }
-  };
+  if (!sound.current) {
+    sound.current = new Audio.Sound();
+  }
 
   useEffect(() => {
-    loadAndPlay().then(() => {
-      setIsLoading(false); // Set loading state to false after successfully loading and playing
-    });
+    const loadAndPlay = async () => {
+      try {
+        // Check if already loading
+        if (isLoading || isMuted) {
+          console.log("A song is already loading or sound is muted");
+          return;
+        }
 
-    return () => {
-      if (sound) {
-        sound.stopAsync(); // Stop the sound when the component is unmounted
-        sound.unloadAsync(); // Unload the sound when the component is unmounted
+        setIsLoading(true); // Set loading state
+        console.log("Loading song:", songs[currentSongIndex]);
+
+        await sound.current.unloadAsync();
+        await sound.current.loadAsync(songs[currentSongIndex]);
+        await sound.current.setVolumeAsync(isMuted ? 0 : 1);
+        await sound.current.playAsync();
+
+        setIsLoaded(true);
+        setIsLoading(false); // Reset loading state
+
+        sound.current.setOnPlaybackStatusUpdate((status) => {
+          if (status.didJustFinish && isLoaded) {
+            playNextSong();
+          }
+        });
+      } catch (error) {
+        console.error("Error loading or playing song", error);
+        setIsLoading(false); // Reset loading state in case of error
       }
     };
-  }, []);
 
-  useEffect(() => {
-    if (sound && !isLoading) {
-      if (isMuted) {
-        sound.setVolumeAsync(0);
-      } else {
-        sound.setVolumeAsync(1);
-      }
-    }
-  }, [isMuted, isLoading]);
+    loadAndPlay();
 
-  if (isLoading) {
-    return null; // Render nothing while loading
-  }
+    return () => {
+      sound.current.unloadAsync();
+    };
+  }, [currentSongIndex, isMuted, playNextSong]);
 
   return null;
 };
