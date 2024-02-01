@@ -10,9 +10,10 @@ import {
   Vibration,
   Animated,
   Easing,
+  ImageBackground,
 } from "react-native";
 
-import { Audio } from "expo-av";
+import { Video } from "expo-av";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import chestImage from "../assets/img/chest.png";
@@ -41,6 +42,24 @@ const Grid = () => {
   const slideAnim = useRef(new Animated.Value(300)).current; // Assuming 300 is off-screen to the right
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const [gameOutcome, setGameOutcome] = useState(null);
+
+  const [showSpadeAnimation, setShowSpadeAnimation] = useState(false);
+  const [spadeAnimationPosition, setSpadeAnimationPosition] = useState({
+    x: 0,
+    y: 0,
+  });
+
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  const gridContainerWidth = 364; // Adjust this to match your grid container's width
+  const gridItemMargin = 1; // Margin around each grid item
+
+  // Calculate the width and height of each grid item
+  const gridItemWidth =
+    (gridContainerWidth - (gridSize + 1) * gridItemMargin * 2) / gridSize;
+  const gridItemHeight = gridItemWidth; // If grid items are squares
+
+  const [clickedIndex, setClickedIndex] = useState(null);
 
   const [shouldAnimateButton, setShouldAnimateButton] = useState(false);
 
@@ -262,6 +281,8 @@ const Grid = () => {
 
       // Check if the item has a question mark
       const hasQuestionMark = questionMarkItems.has(i);
+      const index = i;
+      const isClickedItem = index === clickedIndex;
 
       items.push(
         <TouchableOpacity
@@ -270,23 +291,41 @@ const Grid = () => {
           onPress={() => handleGridItemClick(i)}
           onLongPress={() => handleLongPress(i)}
         >
-          <Text style={textColorStyle}>
-            {(() => {
-              if (showValues || clickedItems.includes(i)) {
-                if (bombPositions.includes(i)) {
-                  return <Image source={bombImage} style={styles.chestImage} />;
-                } else if (i === chestPosition) {
-                  return (
-                    <Image source={chestImage} style={styles.chestImage} />
-                  );
-                } else {
-                  return calculateStepsToChest(i);
+          <ImageBackground
+            source={require("../assets/img/sand_bg2.jpg")} // Replace with your image path
+            style={styles.backgroundImage}
+            resizeMode="cover" // or 'contain', depending on your needs
+          >
+            {isClickedItem && (
+              <>
+                {console.log("hey")}
+                <Image
+                  source={require("../assets/img/shovel2.gif")}
+                  style={styles.shovelImage}
+                />
+              </>
+            )}
+            <Text style={[textColorStyle, styles.textShadow]}>
+              {(() => {
+                if (showValues || clickedItems.includes(i)) {
+                  if (bombPositions.includes(i)) {
+                    return (
+                      <Image source={bombImage} style={styles.chestImage} />
+                    );
+                  } else if (i === chestPosition) {
+                    return (
+                      <Image source={chestImage} style={styles.chestImage} />
+                    );
+                  } else {
+                    return calculateStepsToChest(i);
+                  }
                 }
-              }
-              return ""; // Return an empty string when showValues is false or for other items
-            })()}
-            {hasQuestionMark && ""}
-          </Text>
+                return ""; // Return an empty string when showValues is false or for other items
+              })()}
+
+              {hasQuestionMark && ""}
+            </Text>
+          </ImageBackground>
         </TouchableOpacity>
       );
     }
@@ -345,10 +384,15 @@ const Grid = () => {
     setClickedItems([]);
     setGameOver(false);
     setGameOutcome("new");
+
+    // Select one random bomb position to be visible at start
+    const randomBombToShow =
+      newBombPositions[Math.floor(Math.random() * newBombPositions.length)];
+    setClickedItems([randomBombToShow]); // Add this bomb to the clicked items
   };
 
   const handleGridItemClick = (index) => {
-    if (questionMarkItems.has(index)) {
+    if (clickedIndex || questionMarkItems.has(index)) {
       // If it's question marked, do nothing
       console.log("Item is question marked, cannot open it.");
       return;
@@ -362,90 +406,107 @@ const Grid = () => {
       if (clickedItems.includes(index)) {
         return;
       }
+
       setMoves(moves + 1);
 
-      if (moves > 4 && index !== chestPosition) {
-        SoundManager.playGameOver();
-        setGameOver(true);
-        setShowValues(true);
-        Alert.alert(
-          "Game Over",
-          "You have reached the maximum number of moves."
-        );
-        // Reset consecutive chest count when the game is over
-        setConsecutiveChests(13);
-        setGameOutcome("lose");
-        return;
-      }
+      const row = Math.floor((index - 1) / gridSize);
+      const col = (index - 1) % gridSize;
+      const position = {
+        x: col * gridItemWidth + col * (9 * gridItemMargin),
+        y: row * gridItemHeight + row * (2 * gridItemMargin),
+      };
 
-      if (!clickedItems.includes(index)) {
-        setClickedItems([...clickedItems, index]);
-      }
+      setClickedIndex(index);
 
-      if (bombPositions.includes(index)) {
-        SoundManager.playBomb();
-        if (firstClick) {
-          setShowImage(true);
-          SoundManager.playFCBomb();
-        }
-        SoundManager.playGameOver();
-        setGameOver(true);
-        setShowValues(true);
-        // Reset consecutive chest count when a bomb is clicked
-        setConsecutiveChests(0);
-        setGameOutcome("lose");
-      } else if (index === chestPosition) {
-        setGameOver(true);
-        SoundManager.playChest();
-        if (firstClick) {
-          SoundManager.playFCChest();
-        }
-        setGameOutcome("win");
-        Alert.alert("Congratulations!", "You found the chest!");
-        setShowValues(true);
-        // Increase consecutive chest count when the chest is found
-        setConsecutiveChests(consecutiveChests + 1);
+      setTimeout(() => {
+        setClickedIndex(null); // This will remove the shovel from the view
 
-        // Update high score if the current score is higher than the stored high score
-        if (consecutiveChests >= highScore) {
-          setHighScore(consecutiveChests + 1);
+        // Rest of the item click logic
+        // ...
 
-          // Store the updated high score in AsyncStorage
-          storeHighScore(consecutiveChests + 1);
+        if (moves > 4 && index !== chestPosition) {
+          SoundManager.playGameOver();
+          setGameOver(true);
+          setShowValues(true);
+          Alert.alert(
+            "Game Over",
+            "You have reached the maximum number of moves."
+          );
+          // Reset consecutive chest count when the game is over
+          setConsecutiveChests(20);
+          setGameOutcome("lose");
+          return;
         }
 
-        // Check for 3, 6, and 10 consecutive chests
-        if (consecutiveChests === 2) {
-          // User has opened 3 in a row
-          SoundManager.play3iar();
-          console.log("3 in a row");
-          // Implement your logic here for 3 in a row
-        } else if (consecutiveChests === 5) {
-          // User has opened 6 in a row
-          // Implement your logic here for 6 in a row
-        } else if (consecutiveChests === 9) {
-          // User has opened 10 in a row
-          // Implement your logic here for 10 in a row
+        if (!clickedItems.includes(index)) {
+          setClickedItems([...clickedItems, index]);
         }
 
-        // Save the updated consecutive chest count to AsyncStorage
-        AsyncStorage.setItem(
-          "CONSECUTIVE_CHESTS",
-          (consecutiveChests + 1).toString()
-        )
-          .then(() => {
-            console.log("Consecutive chests count saved successfully.");
-          })
-          .catch((error) => {
-            console.error("Error saving consecutive chests count: ", error);
-          });
-      } else {
-        setFirstClick(false);
-        console.log(
-          "Not yet!",
-          `Steps to the chest: ${calculateStepsToChest(index)}`
-        );
-      }
+        if (bombPositions.includes(index)) {
+          SoundManager.playBomb();
+          if (firstClick) {
+            setShowImage(true);
+            SoundManager.playFCBomb();
+          }
+          SoundManager.playGameOver();
+          setGameOver(true);
+          setShowValues(true);
+          // Reset consecutive chest count when a bomb is clicked
+          setConsecutiveChests(0);
+          setGameOutcome("lose");
+        } else if (index === chestPosition) {
+          setGameOver(true);
+          SoundManager.playChest();
+          if (firstClick) {
+            SoundManager.playFCChest();
+          }
+          setGameOutcome("win");
+          Alert.alert("Congratulations!", "You found the chest!");
+          setShowValues(true);
+          // Increase consecutive chest count when the chest is found
+          setConsecutiveChests(consecutiveChests + 1);
+
+          // Update high score if the current score is higher than the stored high score
+          if (consecutiveChests >= highScore) {
+            setHighScore(consecutiveChests + 1);
+
+            // Store the updated high score in AsyncStorage
+            storeHighScore(consecutiveChests + 1);
+          }
+
+          // Check for 3, 6, and 10 consecutive chests
+          if (consecutiveChests === 2) {
+            // User has opened 3 in a row
+            SoundManager.play3iar();
+            console.log("3 in a row");
+            // Implement your logic here for 3 in a row
+          } else if (consecutiveChests === 5) {
+            // User has opened 6 in a row
+            // Implement your logic here for 6 in a row
+          } else if (consecutiveChests === 9) {
+            // User has opened 10 in a row
+            // Implement your logic here for 10 in a row
+          }
+
+          // Save the updated consecutive chest count to AsyncStorage
+          AsyncStorage.setItem(
+            "CONSECUTIVE_CHESTS",
+            (consecutiveChests + 1).toString()
+          )
+            .then(() => {
+              console.log("Consecutive chests count saved successfully.");
+            })
+            .catch((error) => {
+              console.error("Error saving consecutive chests count: ", error);
+            });
+        } else {
+          setFirstClick(false);
+          console.log(
+            "Not yet!",
+            `Steps to the chest: ${calculateStepsToChest(index)}`
+          );
+        }
+      }, 1000);
     }
   };
 
@@ -547,10 +608,17 @@ const styles = StyleSheet.create({
     width: "19.48%",
     height: 70,
     margin: 1,
-    backgroundColor: "#FFD2A6",
+    //backgroundColor: "#FFD2A6",
     justifyContent: "center",
     alignItems: "center",
     fontWeight: "bold",
+  },
+  backgroundImage: {
+    flex: 1,
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
   },
   bombText: {
     color: "red",
@@ -736,6 +804,18 @@ const styles = StyleSheet.create({
     textShadowColor: "#000", // Shadow color
     textShadowOffset: { width: 2, height: 2 }, // Shadow offset (adjust as needed)
     textShadowRadius: 4, // Shadow radius (adjust as needed)
+  },
+  shovelImage: {
+    width: "85%",
+    height: "85%",
+    marginTop: 10,
+    zIndex: 1,
+    // Adjust styling as needed
+  },
+  textShadow: {
+    textShadowColor: "#000",
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 4,
   },
 });
 

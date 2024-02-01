@@ -3,10 +3,10 @@ import { Audio } from "expo-av";
 import { MusicContext } from "../context/MusicContext";
 
 const BackgroundMusic = () => {
-  const { isMuted, currentSongIndex, playNextSong, songs } =
+  const { isMuted, currentSongIndex, playNextSong, songs, bgMusicVolume } =
     useContext(MusicContext);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [isLoading, setIsLoading] = useState(false); // New state to track loading status
+  const [isLoading, setIsLoading] = useState(false);
   const sound = useRef(null);
 
   if (!sound.current) {
@@ -16,22 +16,21 @@ const BackgroundMusic = () => {
   useEffect(() => {
     const loadAndPlay = async () => {
       try {
-        // Check if already loading
-        if (isLoading || isMuted) {
-          console.log("A song is already loading or sound is muted");
+        if (isLoading) {
+          console.log("A song is already loading");
           return;
         }
 
-        setIsLoading(true); // Set loading state
+        setIsLoading(true);
         console.log("Loading song:", songs[currentSongIndex]);
 
         await sound.current.unloadAsync();
         await sound.current.loadAsync(songs[currentSongIndex]);
-        await sound.current.setVolumeAsync(isMuted ? 0 : 1);
+        await sound.current.setVolumeAsync(isMuted ? 0 : bgMusicVolume);
         await sound.current.playAsync();
 
         setIsLoaded(true);
-        setIsLoading(false); // Reset loading state
+        setIsLoading(false);
 
         sound.current.setOnPlaybackStatusUpdate((status) => {
           if (status.didJustFinish && isLoaded) {
@@ -40,7 +39,7 @@ const BackgroundMusic = () => {
         });
       } catch (error) {
         console.error("Error loading or playing song", error);
-        setIsLoading(false); // Reset loading state in case of error
+        setIsLoading(false);
       }
     };
 
@@ -49,7 +48,7 @@ const BackgroundMusic = () => {
     return () => {
       sound.current.unloadAsync();
     };
-  }, [currentSongIndex, isMuted, playNextSong]);
+  }, [currentSongIndex, isMuted, playNextSong, bgMusicVolume]);
 
   return null;
 };
